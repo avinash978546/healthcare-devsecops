@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: healthcare-app
+  namespace: healthcare
+  labels: { release: monitoring }
+spec:
+  selector:
+    matchLabels: { app: healthcare-app }
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: healthcare-alerts
+  namespace: healthcare
+  labels: { release: monitoring }
+spec:
+  groups:
+  - name: healthcare.rules
+    rules:
+    - alert: HighFailedLogins
+      expr: increase(failed_logins_total[2m]) > 5
+      labels: { severity: critical }
+      annotations: { summary: "Possible brute-force on /login" }
+    - alert: HighCPUUsage
+      expr: sum(rate(container_cpu_usage_seconds_total{namespace="healthcare"}[2m])) > 0.4
+      for: 1m
+      labels: { severity: warning }
+      annotations: { summary: "High CPU in healthcare namespace" }
